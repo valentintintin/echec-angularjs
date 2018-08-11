@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <style>
+        html, body {
+            background-color: lightgray;
+            height: 100%;
+        }
+
+        html, body {
+            display: flex;
+            justify-content: center;
+        }
+
+        body > div {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .plateau.plateau-gris, .plateau.plateau-gris .case {
+            transform: rotate(180deg);
+        }
+
+        .ligne {
+            display: flex;
+        }
+
+        .ligne:nth-child(even) .case:nth-child(odd),
+        .ligne:nth-child(odd) .case:nth-child(even) {
+            background-color: black;
+        }
+
+        .ligne:nth-child(even) .case:nth-child(even),
+        .ligne:nth-child(odd) .case:nth-child(odd) {
+            background-color: white;
+        }
+
+        .case {
+            width: 70px;
+            height: 70px;
+            margin: 3px;
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .case img {
+            width: 60px;
+            height: 60px;
+        }
+
+        .case:hover, .case.selected {
+            background-color: green !important;
+        }
+
+        .bouton_valider img {
+            width: 70px;
+        }
+    </style>
+
+    <script src="js/angular.js"></script>
+    <script src="js/socket.io.js"></script>
+
+    <script>
+        var app = angular.module('app', []);
+        app.controller('ctrl', function ($scope) {
+            $scope.users = [];
+            $scope.plateau = [];
+            $scope.user = {
+                name: null,
+                color: null
+            };
+            $scope.user_connect = false;
+
+            var socket = io('http://192.168.1.12:2609');
+
+            socket.on('connect', function () {
+            });
+
+            socket.on('list_users', function (data) {
+                $scope.users = data;
+                $scope.$apply();
+            });
+
+            socket.on('disconnect', function () {
+            });
+
+            $scope.clickCase = function (caseClicked) {
+                if ($scope.user_connect) {
+                    if ($scope.caseSelected) {
+                        if (!$scope.isSameCase($scope.caseSelected, caseClicked) && caseClicked.color !== $scope.caseSelected.color) {
+                            socket.emit('move', {
+                                oldCase: $scope.caseSelected,
+                                newCase: caseClicked,
+                                user: $scope.user
+                            });
+                        }
+                        $scope.caseSelected = null;
+                    } else if (caseClicked.type) {
+                        $scope.caseSelected = caseClicked;
+                    }
+                }
+            };
+
+            $scope.isSameCase = function (case1, case2) {
+                return case1 && case2 && case1.x === case2.x && case1.y === case2.y && case1.type === case2.type && case1.color === case2.color;
+            };
+
+            $scope.connect = function () {
+                socket.emit('user', $scope.user);
+                $scope.user_connect = true;
+                $scope.$apply();
+            };
+
+            $scope.start = function () {
+                if ($scope.user_connect) {
+                    socket.emit("start");
+                }
+            };
+
+            socket.on('plateau', function (data) {
+                if ($scope.user_connect) {
+                    $scope.plateau = data;
+                    $scope.$apply();
+                }
+            });
+
+            $scope.reset = function () {
+                $scope.user_connect = false;
+                socket.emit("reset");
+            }
+        });
+    </script>
+
+    <title>Le Jeu d'Echec</title>
+
+</head>
+
+<body ng-app="app" ng-controller="ctrl">
+<div class="infos">
+    <div ng-if="user_connect == false">
+        <label for="nom">Quel est votre nom ? : </label><input id="nom" type="text" name="nom" ng-model="user.name">
+    </div>
+    <div ng-if="user_connect == false">
+        Quelle couleur choisissez vous ? :
+        <div>
+            <input id="couleur" type="radio" name="choix" ng-model="user.color" value="rouge"><label for="couleur"><img
+                src="images/choix-rouge.png"></label>
+            <input id="couleur2" type="radio" name="choix" ng-model="user.color" value="gris"><label for="couleur2"><img
+                src="images/choix-gris.png"></label>
+        </div>
+    </div>
+    <div class="bouton_valider" ng-click="connect()" ng-if="user_connect == false">
+        <img src="images/valider.png">
+    </div>
+    <div class="recap" ng-if="users.length">
+        Liste des joueurs :
+        <div ng-repeat="user in users">
+            {{ user.name }} jouera en {{ user.color }}
+        </div>
+    </div>
+    <div class="reset" ng-click="reset()">
+        <input type="button" value="RESET">
+    </div>
+    <div class="lancer_partie" ng-click="start()" ng-if="users.length >= 2">
+        <input type="button" value="START">
+    </div>
+</div>
+<div class="plateau" ng-if="plateau.length" ng-class="{'plateau-gris':user.color == 'gris'}">
+    <div class="ligne" ng-repeat="ligne in plateau track by y=$index">
+        <div class="case" ng-click="clickCase(caseLigne)" ng-repeat="caseLigne in ligne track by x=$index"
+             ng-class="{selected:isSameCase(caseSelected, caseLigne)}">
+            <img ng-if="caseLigne.type" src="images/{{ caseLigne.type }}-{{ caseLigne.color }}.png">
+        </div>
+    </div>
+</div>
+
+</body>
+
+</html>

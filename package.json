@@ -1,0 +1,14 @@
+{
+  "name": "echec",
+  "version": "1.0.0",
+  "description": "Un simple jeu d'échec sans les règles. Multijoueur en AngularJS pour faire découvrir la programmation",
+  "main": "index.js",
+  "scripts": {
+    "start": "node serveur.js"
+  },
+  "author": "Valentin Saugnier",
+  "license": "ISC",
+  "dependencies": {
+    "socket.io": "^2.1.1"
+  }
+}
