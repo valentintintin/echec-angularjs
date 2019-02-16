@@ -4,6 +4,8 @@ var io = require('socket.io')(server);
 var plateau = [];
 var users = [];
 
+var lastUserMoved = null;
+
 io.on('connection', function (client) {
 
     client.on('user', function (data) {
@@ -51,9 +53,9 @@ io.on('connection', function (client) {
                         caseInside.type = 'cheval';
                     } else if (x === 2 || x === 5) {
                         caseInside.type = 'fou';
-                    } else if (x === 3) {
+                    } else if (x === 3 && y === 7 || x === 4 && y === 0) {
                         caseInside.type = 'reine';
-                    } else if (x === 4) {
+                    } else if (x === 4 && y === 7 || x === 3 && y === 0) {
                         caseInside.type = 'roi';
                     }
                 } else if (y === 6 || y === 1) {
@@ -81,6 +83,7 @@ io.on('connection', function (client) {
             plateau[data.newCase.y][data.newCase.x].x = data.newCase.x;
             plateau[data.newCase.y][data.newCase.x].y = data.newCase.y;
             io.emit('plateau', plateau);
+	    lastUserMoved = data.user;
         }
     });
 
